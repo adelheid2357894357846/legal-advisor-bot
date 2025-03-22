@@ -4,7 +4,7 @@ import time
 
 
 st.set_page_config(page_title="Legal Advisor Chatbot", layout="wide")
-
+# containerized endpoints work abit different than normal ones so here instead of localhost u use container name from where localhost is
 CHAT_ENDPOINT = "http://legal_advisor_backend:8000/chat"
 HISTORY_ENDPOINT = "http://legal_advisor_backend:8000/chat-history"
 DELETE_ENDPOINT = "http://legal_advisor_backend:8000/delete-chat"
