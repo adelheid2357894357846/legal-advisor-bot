@@ -10,9 +10,10 @@ st.set_page_config(page_title="Legal Advisor Chatbot", layout="centered")
 st.title("Legal Advisor Chatbot")
 st.write("Ask any legal question and get advice.")
 
-# Initialize session state for input
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "show_history" not in st.session_state:
+    st.session_state.show_history = False
 
 def display_chat():
     chat_container = st.container()
@@ -53,6 +54,29 @@ def send_message():
         finally:
             typing_placeholder.empty()
 
+
+# upgraded history to look better and fixed bug where it was duplicating itself ( i accidentally called it 2x in my code)
+def toggle_history():
+    st.session_state.show_history = not st.session_state.show_history
+    if st.session_state.show_history:
+        load_chat_history()
+
+def load_chat_history():
+    try:
+        response = requests.get(HISTORY_ENDPOINT)
+        if response.status_code == 200:
+            chat_history = response.json()
+            with st.sidebar:
+                st.subheader("Chat History")
+                for entry in chat_history.get("data", []):
+                    st.write(f"**Q:** {entry['question']}")
+                    st.write(f"**A:** {entry['answer']}")
+                    st.write("---")
+        else:
+            st.error("Failed to fetch chat history.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error: {e}")
+
 display_chat()
 
 st.text_input("Your Question:", key="user_input", on_change=send_message)
@@ -60,20 +84,7 @@ st.text_input("Your Question:", key="user_input", on_change=send_message)
 col1, col2 = st.columns(2)
 with col1:
     if st.button("View Chat History"):
-        # turned chat history into a sidebar
-        try:
-            response = requests.get(HISTORY_ENDPOINT)
-            if response.status_code == 200:
-                chat_history = response.json()
-                with st.sidebar:
-                    st.subheader("Chat History")
-                    for entry in chat_history.get("data", []):
-                        st.write(f"**Q:** {entry['question']}")
-                        st.write(f"**A:** {entry['answer']}")
-            else:
-                st.error("Failed to fetch chat history.")
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error: {e}")
+        toggle_history()
 
 with col2:
     if st.button("Delete Chat History"):
@@ -82,6 +93,7 @@ with col2:
             if response.status_code == 200:
                 st.success("All chats have been deleted successfully.")
                 st.session_state.messages.clear()
+                st.session_state.show_history = False
             else:
                 st.error("Failed to delete chat history.")
         except requests.exceptions.RequestException as e:

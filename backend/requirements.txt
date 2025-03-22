@@ -8,3 +8,4 @@ openai
 python-dotenv
 psycopg2-binary
 langchain_community
+langgraph
