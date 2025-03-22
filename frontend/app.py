@@ -1,52 +1,87 @@
 import streamlit as st
 import requests
+import time
+
 
 CHAT_ENDPOINT = "http://legal_advisor_backend:8000/chat"
 HISTORY_ENDPOINT = "http://legal_advisor_backend:8000/chat-history"
 DELETE_ENDPOINT = "http://legal_advisor_backend:8000/delete-chat"
 
+st.set_page_config(page_title="Legal Advisor Chatbot", layout="centered")
 st.title("Legal Advisor Chatbot")
 st.write("Ask any legal question and get advice.")
 
-# Initialize session state for question_input (to be able to clear it since streamlit widgets are funny and they hate being changed directly)
-if "question_input" not in st.session_state:
-    st.session_state.question_input = ""
+# Initialize session state for input
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-def submit_question():
-    question = st.session_state.question_input
+def display_chat():
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.messages:
+            with st.chat_message("user" if message["role"] == "user" else "assistant"):
+                st.markdown(message["content"])
+
+def show_typing_indicator(placeholder):
+    for _ in range(3):
+        placeholder.markdown("**.**")
+        time.sleep(0.3)
+        placeholder.markdown("**..**")
+        time.sleep(0.3)
+        placeholder.markdown("**...**")
+        time.sleep(0.3)
+    placeholder.empty()
+
+def send_message():
+    question = st.session_state.user_input.strip()
     if question:
-        response = requests.post(CHAT_ENDPOINT, json={"question": question})
-        if response.status_code == 200:
-            answer = response.json().get("answer")
-            st.write(f"**Answer:** {answer}")
-        else:
-            st.error("Failed to get response from the backend.")
-        # After submitting, we clear the inputfield so the text input doesnt have a prompt that persists over runs 
-        st.session_state.question_input = ""
+        st.session_state.messages.append({"role": "user", "content": question})
+        st.session_state.user_input = ""
 
-# Text input for the question with an on_change callback (to clear it, yes, i had to change 3 different code blocks to just clear a widgeet in streamlit)
-st.text_input("Your Question:", key="question_input", on_change=submit_question)
+        typing_placeholder = st.empty()
+        with st.chat_message("assistant"):
+            show_typing_indicator(typing_placeholder)
+        
+        try:
+            response = requests.post(CHAT_ENDPOINT, json={"question": question})
+            if response.status_code == 200:
+                answer = response.json().get("answer")
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+            else:
+                st.error("Failed to get response from the backend.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error: {e}")
+        finally:
+            typing_placeholder.empty()
 
-# chat history btn logic
-if st.button("View Chat History"):
-    response = requests.get(HISTORY_ENDPOINT)
-    if response.status_code == 200:
-        chat_history = response.json()
-        if "data" in chat_history:
-            for entry in chat_history["data"]:
-                st.write(f"**Q:** {entry['question']}")
-                st.write(f"**A:** {entry['answer']}")
-                st.write(f"_Date:_ {entry['created_at']}")
-                st.write("---")
-        else:
-            st.write("No chat history available.")
-    else:
-        st.error("Failed to fetch chat history.")
+display_chat()
 
-# Manage chat deletion (delete all chats, im still trying to figure out how to make individual chat deletion but so far the streamlit btn renderers are messy and they need to have data stored across the refreshed state)
-if st.button("Delete Chat History"):
-    delete_response = requests.delete(DELETE_ENDPOINT)
-    if delete_response.status_code == 200:
-        st.success("All chats have been deleted successfully.")
-    else:
-        st.error("Failed to delete chat history.")
+st.text_input("Your Question:", key="user_input", on_change=send_message)
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("View Chat History"):
+        try:
+            response = requests.get(HISTORY_ENDPOINT)
+            if response.status_code == 200:
+                chat_history = response.json()
+                st.session_state.messages.clear()
+                for entry in chat_history.get("data", []):
+                    st.session_state.messages.append({"role": "user", "content": entry["question"]})
+                    st.session_state.messages.append({"role": "assistant", "content": entry["answer"]})
+            else:
+                st.error("Failed to fetch chat history.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error: {e}")
+
+with col2:
+    if st.button("Delete Chat History"):
+        try:
+            response = requests.delete(DELETE_ENDPOINT)
+            if response.status_code == 200:
+                st.success("All chats have been deleted successfully.")
+                st.session_state.messages.clear()
+            else:
+                st.error("Failed to delete chat history.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error: {e}")
