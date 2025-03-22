@@ -27,17 +27,22 @@ def get_db():
         yield db
     finally:
         db.close()
-
+ # updated to have timestamps
 @app.post("/chat")
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
-    answer = get_legal_advice(request.question, request.conversation_id)  # here we pass conv id for the langgraph memory
+    answer = get_legal_advice(request.question, request.conversation_id)
     
     chat_entry = ChatHistory(question=request.question, answer=answer, created_at=datetime.utcnow())
     db.add(chat_entry)
     db.commit()
     db.refresh(chat_entry)
     
-    return {"question": request.question, "answer": answer}
+    print(f"Returning: {chat_entry.created_at}")
+    return {
+        "question": request.question,
+        "answer": answer,
+        "created_at": chat_entry.created_at.isoformat()
+    }
 
 @app.get("/chat-history")
 async def chat_history(page: int = 1, db: Session = Depends(get_db)):
