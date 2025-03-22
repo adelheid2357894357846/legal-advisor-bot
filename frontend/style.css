@@ -1,0 +1,41 @@
+/* styles.css */
+.main {
+    background-color: #f5f7fa;
+    padding: 20px;
+    border-radius: 10px;
+}
+.stTextInput > div > div > input {
+    border: 2px solid #2c5282;
+    border-radius: 5px;
+    padding: 10px;
+}
+.stButton > button {
+    background-color: #2c5282;
+    color: white;
+    border-radius: 5px;
+    padding: 8px 16px;
+    border: none;
+}
+.stButton > button:hover {
+    background-color: #3f729b;
+}
+.chat-message {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+.user-message {
+    background-color: #dbeafe;
+    border-left: 4px solid #2c5282;
+}
+.assistant-message {
+    background-color: #ffffff;
+    border-left: 4px solid #68d391;
+}
+.sidebar .sidebar-content {
+    background-color: #edf2f7;
+}
+h1 {
+    color: #2c5282;
+    font-family: 'Arial', sans-serif;
+}

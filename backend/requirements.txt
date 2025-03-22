@@ -2,7 +2,6 @@ fastapi
 uvicorn
 sqlalchemy
 asyncpg
-streamlit
 langchain
 openai
 python-dotenv

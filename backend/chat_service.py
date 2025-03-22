@@ -13,39 +13,35 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 conversation_memory = {}
 
-# here we define state str for langgraph
+# Define state structure for LangGraph
 class ChatState(TypedDict):
     messages: List[HumanMessage | AIMessage]
     question: str
     answer: str
-
+#updated template to be more natural numbered step format
 legal_advisor_prompt = PromptTemplate(
     input_variables=["question", "history"],
     template="""
-You are a helpful legal advisor. Use the conversation history below to provide context-aware, structured answers to the user's legal question. If the history contains specific details (e.g., names, events, or prior advice), incorporate them into your response where relevant. Answer concisely with clear, actionable steps, and include legal references if applicable.
+You are a helpful legal advisor. Use the conversation history below to provide context-aware, concise, and conversational answers to the user's legal question. If the history contains specific details (e.g., names, events, or prior advice), incorporate them into your response where relevant. Provide clear and actionable information, and include legal references if applicable.
 
 **Conversation History:**
 {history}
 
 **Question:** {question}
 
-Provide your answer in the following format:
-1. **Step 1:** [Brief description of the action or legal principle involved]
-2. **Step 2:** [Follow-up step, if any, with additional legal context]
-3. **Step 3:** [Final action or advice to resolve the situation]
-
-If the user asks you to recall or confirm something from the history (e.g., a name or detail), explicitly address it in your response (e.g., "The landlord's name is Mr. Smith, as noted earlier"). When referring to individuals or entities from the history, use their names or specific identifiers where possible to show continuity.
+Respond naturally, without using a numbered step format, and tailor your answer to the question and context. If the user asks you to recall or confirm something from the history (e.g., a name or detail), explicitly address it (e.g., "As we discussed earlier, the landlord’s name is Mr. Smith"). When referring to individuals or entities from the history, use their names or specific identifiers to maintain continuity.
 
 If relevant, include legal references, statutes, or frameworks (e.g., state landlord-tenant laws, implied warranty of habitability) that might apply, tailored to the context.
 
-Finally, include a legal disclaimer: "This is general legal information and not a substitute for professional legal advice."
+End your response with: "This is general legal information and not a substitute for professional legal advice."
 """
 )
 
-# generating response in this node
+# Generate response in this node
 def legal_advisor_node(state: ChatState) -> ChatState:
     llm = OpenAI()
-    history = "\n".join([f"{msg.__class__.__name__}: {msg.content}" for msg in state["messages"]])
+    # Format history without class names, just the content
+    history = "\n".join([msg.content for msg in state["messages"]])
     prompt = legal_advisor_prompt.format(question=state["question"], history=history)
     answer = llm(prompt)
     state["answer"] = answer.strip()
@@ -53,7 +49,7 @@ def legal_advisor_node(state: ChatState) -> ChatState:
     state["messages"].append(AIMessage(content=state["answer"]))
     return state
 
-# langgraph workflow
+# LangGraph workflow
 workflow = StateGraph(ChatState)
 workflow.add_node("legal_advisor", legal_advisor_node)
 workflow.set_entry_point("legal_advisor")
@@ -61,10 +57,9 @@ workflow.add_edge("legal_advisor", END)
 graph = workflow.compile()
 
 def get_legal_advice(question: str, conversation_id: str = "default") -> str:
-    # Load existing history for existing coversation id or start a new one if theres none
+    # Load existing history for the conversation ID or start a new one if none exists
     messages = conversation_memory.get(conversation_id, [])
     
-
     initial_state = ChatState(
         messages=messages,
         question=question,
@@ -73,7 +68,7 @@ def get_legal_advice(question: str, conversation_id: str = "default") -> str:
     
     result = graph.invoke(initial_state)
     
-    # saving updated history in the memory
+    # Save updated history in memory
     conversation_memory[conversation_id] = result["messages"]
     
     return result["answer"]
