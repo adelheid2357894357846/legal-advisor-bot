@@ -34,8 +34,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: legal_advisor_frontend
     ports:
       - "8501:8501"
