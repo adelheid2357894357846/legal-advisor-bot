@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import time
 
-
 CHAT_ENDPOINT = "http://legal_advisor_backend:8000/chat"
 HISTORY_ENDPOINT = "http://legal_advisor_backend:8000/chat-history"
 DELETE_ENDPOINT = "http://legal_advisor_backend:8000/delete-chat"
@@ -61,14 +60,16 @@ st.text_input("Your Question:", key="user_input", on_change=send_message)
 col1, col2 = st.columns(2)
 with col1:
     if st.button("View Chat History"):
+        # turned chat history into a sidebar
         try:
             response = requests.get(HISTORY_ENDPOINT)
             if response.status_code == 200:
                 chat_history = response.json()
-                st.session_state.messages.clear()
-                for entry in chat_history.get("data", []):
-                    st.session_state.messages.append({"role": "user", "content": entry["question"]})
-                    st.session_state.messages.append({"role": "assistant", "content": entry["answer"]})
+                with st.sidebar:
+                    st.subheader("Chat History")
+                    for entry in chat_history.get("data", []):
+                        st.write(f"**Q:** {entry['question']}")
+                        st.write(f"**A:** {entry['answer']}")
             else:
                 st.error("Failed to fetch chat history.")
         except requests.exceptions.RequestException as e:
