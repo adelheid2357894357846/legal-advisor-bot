@@ -43,6 +43,7 @@ legal-advisor-bot/
      cp .env.example .env
      ```
    - Edit `.env` to include your specific environment variables (e.g., API keys, database credentials, endpoints). Refer to `.env.example` for the required variables.
+   - Don't forget to create a db in PostgreSQL (pgadmin4.exe) and have it running for this to work.
 
 3. **Build and Run the Project**
    - From the project root, run the following command to build and start the services:
